@@ -1,7 +1,16 @@
-
-
 class TimersDashboard extends React.Component{
 
+  componentDidMount(){
+    this.loadTimersFromServer();
+    setInterval(this.loadTimersFromServer,5000);
+  }
+  loadTimersFromServer=()=>{
+    client.getTimers((serverTimers)=>{
+      this.setState({
+        timers:serverTimers
+      })
+    })
+  }
   handleCreateFormSubmit=(timer)=>{
     this.createTimer(timer)
   }
@@ -17,11 +26,11 @@ class TimersDashboard extends React.Component{
   handleStartClick=(id)=>{
     this.startTimer(id);
   }
-  startTimer=(id)=>{
+  startTimer=(timerId)=>{
     const now= Date.now();
     this.setState({
       timers: this.state.timers.map(timer=>{
-        if(timer.id===id){
+        if(timer.id===timerId){
           return(
             Object.assign({},timer,{
               runningSince:now
@@ -30,12 +39,15 @@ class TimersDashboard extends React.Component{
         } else return timer;
       })
     })
+    client.startTimer({
+      id:timerId, start:now
+    });
   }
-  stopTimer=(id)=>{
+  stopTimer=(timerId)=>{
     const now= Date.now();
     this.setState({
       timers: this.state.timers.map(timer=>{
-        if(timer.id===id){
+        if(timer.id===timerId){
           const elapsedTime= now-timer.runningSince;
           console.log(timer.elapsed+elapsedTime);
           return Object.assign({},timer,{
@@ -45,15 +57,27 @@ class TimersDashboard extends React.Component{
         } else return timer;
       })
     })
+    client.stopTimer({
+      id:timerId, stop:now
+    });
   }
-  deleteTimer=(id)=>{
+  deleteTimer=(timerId)=>{
     this.setState({
-      timers: this.state.timers.filter(timer=> timer.id!== id)
+      timers: this.state.timers.filter(timer=> timer.id!== timerId)
+    })
+    client.deleteTimer({
+      id:timerId
     })
   }
   createTimer=(timer)=>{
     const t= helpers.newTimer(timer)
     this.setState({timers:this.state.timers.concat(t)})
+    client.createTimer({
+      title:t.title,
+      project:t.project,
+      id:t.id
+    })
+
   }
   updateTimer=(attrs)=>{
     this.setState({
@@ -69,22 +93,7 @@ class TimersDashboard extends React.Component{
   }
 
   state={
-    timers:[
-      {
-        title:'Learn React',
-        project:'Web Domination',
-        id:uuid.v4(),
-        elapsed:4545454,
-        runningSince:Date.now()
-      },
-      {
-        title:'Learn Mathematics',
-        project:'World Domination',
-        id:uuid.v4(),
-        elapsed:9595494,
-        runningSince:null
-      }
-    ]
+    timers:[]
   }
   render(){
     return(
